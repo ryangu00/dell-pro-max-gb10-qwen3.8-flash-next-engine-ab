@@ -34,17 +34,17 @@ Conditions: engine config line `GPU KV cache size`; 1M fp8 baseline = 3.44–3.4
 
 ## Verdict
 
-Conditions: as recommended in the sources, pending owner sign-off.
+Conditions: as recommended in the sources; see the Update note in the README for the outcome.
 
 - Default profile: native 262K, fp8 KV, MTP4, no-async, `qwen3_coder`. The default engine exposes a fast tier and a quality tier; their thinking-effort assignments are not recorded in the sources, so no thinking-tier recommendation is made here.
 - On-demand profile: kept (1M ctx, YaRN×4), switched in via the switch script (the 4 min switch time is a reported figure whose start/end points, cache state, repetition count, and switch script are not recorded). The public abstraction for the switch is `switch/stack-mode.sh` in the sibling repo dell-pro-max-gb10-vllm-stack-ab.
 
-## Source discrepancy (kept as-is, not adjusted)
+## Source discrepancy (unresolved)
 
 Conditions: two statements from the sources describing the same native-vs-YaRN×4 comparison, neither adjusted.
 
 | statement | source wording | compare-table figure |
 |---|---|---|
-| "static YaRN hurts short text" | "c1 −5, c9 38% slower" | native's c9 wall ratio = 0.62× (candidate ÷ baseline, i.e. native used 62% of the baseline's time — native ~38% faster, baseline ~61% slower; native's c9 score was unchanged at 100.0) |
+| "static YaRN hurts short text" | "c1 −5, c9 38% slower" | native's c9 wall ratio = 0.62× (candidate ÷ baseline: native used 38% less time; the baseline used about 1.61 times native's time, or about 61% more; native's c9 score was unchanged at 100.0) |
 
-"c9 38% slower" matches the wall-ratio table only if "slower" refers to the baseline (the YaRN×4 side), not to native. The two statements do not obviously agree; both are listed unchanged.
+The legacy "c9 38% slower" quote is inconsistent with the 0.62× wall ratio; swapping the comparison sides does not resolve the discrepancy. The quoted wording and measured ratio are preserved, without treating them as equivalent.

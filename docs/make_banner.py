@@ -4,8 +4,8 @@
 Concept: two engine profiles (native 262K recommended default vs 1M YaRN
 on-demand) on two Dell Pro Max with GB10. Left = wordmark. Right = two stacked
 slabs for the two context tiers, 01/02 annotations, a dashed down-flow for the
-on-demand switch, and a single orange arrow marking the native 262K recommended
-default tier (pending owner sign-off).
+on-demand switch, and a single orange marker on the native 262K tier, which the
+book recommends as the default (see the README update for what was deployed).
 
 Requires Pillow (pip install Pillow). Fonts used are the macOS system fonts at
 /System/Library/Fonts/HelveticaNeue.ttc and /System/Library/Fonts/Menlo.ttc; if
@@ -59,7 +59,7 @@ for ox, oy in ((72, 78), (1150, 536)):
 d.text((80, 196), "NATIVE 262K", font=f_title, fill=WHITE)
 d.text((80, 288), "OR YARN 1M", font=f_title, fill=WHITE)
 d.text((82, 414), "Engine-form A/B on two Dell Pro Max with GB10.", font=f_tag, fill=WHITE)
-d.text((82, 462), "QWEN3.8-FLASH-NEXT · VLLM · MTP4 · FP8 KV · MEASURED DEFAULT", font=f_mono, fill=GREY)
+d.text((82, 462), "QWEN3.8-FLASH-NEXT · VLLM · MTP4 · FP8 KV · MEASURED TRADE-OFF", font=f_mono, fill=GREY)
 
 # right: two tiers as slabs (isometric-ish parallelograms), stacked
 SX, SY = 860, 180
@@ -87,11 +87,11 @@ lx = SX + 20
 dashed((lx, boxes[0] + slab_h), (lx, boxes[1]))
 d.text((lx - 70, boxes[0] + slab_h + 18), "on-demand", font=f_label, fill=DIM)
 
-# the single orange marker: native 262K is the shipped default tier
+# the single orange marker: native 262K is the recommended default tier
 ry = SX + skew + slab_w - 30
 ty = boxes[0] + slab_h // 2
 d.ellipse([ry - 5, ty - 5, ry + 5, ty + 5], fill=ORANGE)
-d.text((ry + 14, ty - 8), "DEFAULT", font=f_label, fill=ORANGE)
+d.text((ry + 14, ty - 8), "RECOMMENDED", font=f_label, fill=ORANGE)
 
 # footer rule + labels
 d.line([(80, 560), (W - 80, 560)], fill=(40, 40, 40), width=1)

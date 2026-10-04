@@ -6,7 +6,7 @@
 
 ## Why this matters
 
-A 1M-context YaRN×4 build booted and ran its bring-up sequence, but "boots" is not "best" — no job close to 1M input tokens was run or scored, so "end-to-end" here means the engine reached readiness, not that a 1M-token task completed. Static YaRN is observed to tax short-context quality on this bank, KV bf16 halves the token pool for no observed gain, the indexer budget lever could not start on this vLLM build (see Pitfalls), and MTP off ran ~30% slower on the c7a control for a median difference of 1.6 points. The A/B changes one variable at a time against a fixed 1M / YaRN×4 / fp8 KV / MTP4 baseline — with the caveat that two variants bundle related parameters (V1/V2 change RoPE factor and context length together; V4 changes indexer budget and compress_ratio together), so those two cannot be decomposed into per-parameter causal effects. The default profile is therefore chosen from measurements rather than from the fact that the 1M build boots. The verdict (pending owner sign-off) is to ship native 262K / fp8 KV / MTP4 as the default and keep the 1M YaRN×4 build as an on-demand profile switched in by the switch script (the 4 min switch time is a reported figure whose measurement conditions are not recorded).
+A 1M-context YaRN×4 build booted and ran its bring-up sequence, but "boots" is not "best" — no job close to 1M input tokens was run or scored, so "end-to-end" here means the engine reached readiness, not that a 1M-token task completed. Static YaRN is observed to tax short-context quality on this bank, KV bf16 halves the token pool for no observed gain, the indexer budget lever could not start on this vLLM build (see Pitfalls), and MTP off ran ~30% slower on the c7a control for a median difference of 1.6 points. The A/B changes one variable at a time against a fixed 1M / YaRN×4 / fp8 KV / MTP4 baseline — with the caveat that two variants bundle related parameters (V1/V2 change RoPE factor and context length together; V4 changes indexer budget and compress_ratio together), so those two cannot be decomposed into per-parameter causal effects. The default profile is therefore chosen from measurements rather than from the fact that the 1M build boots. The verdict (our recommendation; see the Update note for what we actually deployed) is to ship native 262K / fp8 KV / MTP4 as the default and keep the 1M YaRN×4 build as an on-demand profile switched in by the switch script (the 4 min switch time is a reported figure whose measurement conditions are not recorded).
 
 ## Hardware and stack
 
@@ -68,7 +68,7 @@ Full tables with measurement conditions are in [docs/results.md](docs/results.md
 - **YaRN 2 @ 512K**: one source labels it "no gain", citing c1 −3.3 and c8 −5.0; the compare table records two positive Δs in this column — c5-extract +0.2 and c7a +2.5 — so it is not the single positive the "only positive" wording implied. Both figures are reported in the sources; the sources characterize this variant differently.
 - **KV bf16 @ 1M**: Δ ≤ 0 in all five categories and KV pool 3.45M→1.86M. One source calls it "slower" without specifying which time statistic; the measured per-category wall ratios (candidate ÷ baseline) are mostly below 1.0 (0.89–1.09×, i.e. candidate was faster or roughly even in four of five categories), so "slower" does not agree with the wall-ratio column and is left uninterpreted here.
 - **MTP off**: the c7a median moved from 91.7 to 93.3, a 1.6-point difference over 3 runs (question count and per-question score granularity are not recorded, so "1 question of noise" cannot be verified — only the 1.6-point median difference is shown), at ~30% wall cost → MTP4 retained.
-- **Source discrepancy, kept as-is**: one source states the official card's "static YaRN hurts short text" check as "c1 −5, c9 38% slower", while the compare table gives native's c9 wall ratio as 0.62× (candidate ÷ baseline, i.e. native used 62% of the baseline's time — native was ~38% faster, or equivalently the baseline was ~61% slower). "c9 38% slower" therefore matches the wall-ratio table only if "slower" refers to the baseline (native's c9 score was unchanged at 100.0), not to native; the two statements do not obviously agree and neither is adjusted here.
+- **Source discrepancy, unresolved**: one source states the official card's "static YaRN hurts short text" check as "c1 −5, c9 38% slower", while the compare table gives native's c9 wall ratio as 0.62× (candidate ÷ baseline: native used 38% less time; the baseline used about 1.61 times native's time, or about 61% more). The legacy "c9 38% slower" quote is inconsistent with that ratio; swapping the comparison sides does not resolve the discrepancy. Native's c9 score was unchanged at 100.0; the quoted wording and measured ratio are preserved, without treating them as equivalent.
 
 ## Pitfalls
 
@@ -83,7 +83,7 @@ Symptom → root cause → fix, in the order they matter. Expanded in [docs/pitf
 
 ## Decision
 
-Verdict (as recommended in the sources, pending owner sign-off):
+Verdict (as recommended in the sources; outcome in the Update note below):
 
 - **Default tier: native 262K.** Ship the default profile — native 262K (no RoPE override), fp8 KV, MTP4, `--no-async-scheduling`, `--tool-call-parser qwen3_coder`. The default engine exposes a fast tier and a quality tier; their thinking-effort assignments are not recorded in the sources, so no thinking-tier recommendation is made here. Native 262K was positive or flat in the five measured categories (c1 +5.0, c5 +1.8, c7a +0.8, c8 +0.0, c9 +0.0); its lowest wall ratio was 0.62× baseline on c9-long-coding (the YaRN×2 variant's c9 wall ratio of 0.60× was lower, so "fastest" is not claimed across all variants). No timeout was recorded in those five categories (timeout config, request count, and failure/retry counts are not recorded).
 - **On-demand tier: 1M YaRN.** Keep the on-demand profile (1M ctx, YaRN×4), switched in via the switch script (the 4 min switch time is a reported figure whose measurement conditions are not recorded). Escalate to 1M only when a job actually needs the long context; static YaRN taxes short-context quality (native wins c1 +5.0 vs the YaRN×4 baseline).
@@ -94,6 +94,14 @@ Verdict (as recommended in the sources, pending owner sign-off):
   > `SM12x QSA integration requires compress_ratio=4`
 
   This is a kernel limitation of this vLLM build on GB10 (SM12x); budget 4096/ratio 4 and other ratios were not tested, and other vLLM builds were not tested, so the lock is scoped to this build, not asserted for the whole GPU generation. `compress_ratio` must stay 4 on this build regardless of `indexer_budget`.
+
+## Update (2026-10)
+
+Our recommendation here (native 262K default, 1M on demand) was not what we shipped first: on 2026-09-20 we put 1M YaRN×4 into production as the default tier to avoid switching, accepting the costs this book measures — knowledge-QA category 5.0 points lower (88.3 vs 93.3), long-coding wall clock about 1.6 times native (conditions: thinking on, official sampling, max_tokens 16384, 2 runs per category, private 11-category eval bank); no new measurements are reported in this update.
+
+About 4.5 days later (2026-09-25 about 01:10), the model left the two-node GB10 setup; production moved to another machine and this setup became the rollback tier.
+
+On 2026-09-26, the recommendation itself, native-length default with 1M on demand, was implemented as automatic switching on that other machine; the sibling 1M-context book carries the first-47-hours traffic data that supports the recommendation; native 262K as default was never deployed or tested in production on the two-node GB10 setup, and whether the automatic on-demand switching reproduces this book's native-vs-1M deltas is not claimed.
 
 ## Files
 

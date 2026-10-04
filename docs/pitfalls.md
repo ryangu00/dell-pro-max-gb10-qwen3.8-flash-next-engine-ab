@@ -25,7 +25,7 @@ Each pitfall is expanded: **symptom** / **root cause** / **fix** / **how we foun
 
 ## 4. Static YaRN taxes short-context quality
 
-- **Symptom:** The YaRN×4 1M baseline underperforms native 262K on the short-context categories in this bank — native wins c1 +5.0 (88.3 → 93.3) vs the YaRN×4 baseline, and the official card's own "static YaRN hurts short text" check is reported as "c1 −5, c9 38% slower" in one source (see the README source-discrepancy note for how this wording maps onto the wall-ratio column).
+- **Symptom:** The YaRN×4 1M baseline underperforms native 262K on the short-context categories in this bank — native wins c1 +5.0 (88.3 → 93.3) vs the YaRN×4 baseline, and the official card's own "static YaRN hurts short text" check is reported as "c1 −5, c9 38% slower" in one source (see the README source-discrepancy note: the legacy timing quote is inconsistent with the 0.62× wall ratio, and swapping the comparison sides does not resolve the discrepancy).
 - **Root cause:** Observation, not an isolated causal root cause. No input-length sweep and no max_model_len-only control were run, so the short-context difference is associated with the YaRN×4 form by the experiment design (which changes RoPE factor and context length together), not separately proven to stem from static YaRN alone.
 - **Fix:** Default to native 262K; escalate to the 1M YaRN×4 profile only when a job actually needs the long context (switched in via the switch script; the 4 min switch time is a reported figure whose measurement conditions are not recorded).
 - **How we found it:** The `nfAB-native` variant (no rope override, `--max-model-len 262144`) was positive or flat in every measured category vs the 1M YaRN×4 baseline, with c1 the largest gain.
